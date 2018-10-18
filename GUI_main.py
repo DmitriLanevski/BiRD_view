@@ -9,17 +9,19 @@
 import sys
 
 sys.path.append('../GUI/')
+from pathlib import Path
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-#from matplotlib import cm
+from matplotlib import cm
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.qt_compat import QtCore, QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.colors import SymLogNorm
 from matplotlib.ticker import LogFormatter
 
-#import numpy as np
+import numpy as np
 
 class FileWalker(QtWidgets.QTreeView):
     """PyQt custom widget.
@@ -59,6 +61,30 @@ class FileWalker(QtWidgets.QTreeView):
         """Returns file path variable (str)"""
         return self.filePath
 
+class mainPlotWidget(object):
+        def __init__(self, tab):
+            self.tab = tab
+            self.figure = plt.figure()
+            self.subplot = self.figure.add_subplot(111)
+
+            self.canvas = FigureCanvas(self.figure)
+            self.toolbar = NavigationToolbar(self.canvas, self.tab)
+
+class singleTab(QtWidgets.QWidget):
+    def __init__(self, tabs):
+        super(singleTab, self).__init__()
+        self.tabs = tabs
+
+        self.layout = QtWidgets.QHBoxLayout(self)
+
+        self.mainPlot = mainPlotWidget(self)
+
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.splitter.addWidget(self.mainPlot.toolbar)
+        self.splitter.addWidget(self.mainPlot.canvas)
+
+        self.layout.addWidget(self.splitter)
+        self.setLayout(self.layout)
 
 class customTabWidget(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
@@ -72,49 +98,8 @@ class customTabWidget(QtWidgets.QTabWidget):
         self.currentQWidget.deleteLater()
         self.removeTab(currentIndex)
 
-
-class singleTab(QtWidgets.QWidget):
-    def __init__(self, tabs):
-        super(singleTab, self).__init__()
-        self.tabs = tabs
-
-        self.layout = QtWidgets.QHBoxLayout(self)
-
-        self.mainPlot = mainPlotWidget(self)
-        # self.SpatialSpectralSelectror = spatialOrSpectralSelectror(self.mainPlot)
-        # self.AverageMaximumSelector = maximumOrAverageSelector(self.mainPlot)
-        # self.imagingModeSelector = imagingModeSelector(self.mainPlot)
-        # self.dataSelector = dataSelectorFromList()
-
-        self.splitterh1 = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.splitterh1.addWidget(self.mainPlot.toolbar)
-        # self.splitterh1.addWidget(self.dataSelector)
-
-        self.splitterh2 = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        # self.splitterh2.addWidget(self.SpatialSpectralSelectror)
-        # self.splitterh2.addWidget(self.AverageMaximumSelector)
-        # self.splitterh2.addWidget(self.imagingModeSelector)
-
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        self.splitter.addWidget(self.splitterh1)
-        self.splitter.addWidget(self.mainPlot.canvas)
-        self.splitter.addWidget(self.splitterh2)
-
-        self.layout.addWidget(self.splitter)
-        self.setLayout(self.layout)
-
-
-class mainPlotWidget(object):
-    def __init__(self, tab):
-        self.tab = tab
-
-        self.figure = plt.figure()
-        self.subplot = self.figure.add_subplot(111)
-
-        self.canvas = FigureCanvas(self.figure)
-        self.toolbar = NavigationToolbar(self.canvas, self.tab)
-
 class MainWindow(QtWidgets.QMainWindow):
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.initUI()
@@ -129,7 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.splitterh = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitterh.addWidget(self.splitterv)
-        #self.tabs.addTab(singleTab(self.tabs), 'Test')
+        self.tabs.addTab(singleTab(self.tabs), 'Test')
         self.splitterh.addWidget(self.tabs)
 
         self.setCentralWidget(self.splitterh)
@@ -137,6 +122,50 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle('Tropomi Data viewer')
         self.show()
+
+class DataContainer(object):
+
+    def __init__(self, fileName, filePath):
+        self.fileName = fileName
+        self.filePath = filePath
+        self.readData()
+
+    def readData(self):
+        self.pol = []
+        self.IZA = []
+        self.VZA = []
+        self.data = []
+        self.wavelengths = []
+
+        # pathToFile = Path("C:/Users/lanevsd1/Dmitri/Work files/Reflectance measurements/300818_1500_14_0i.csv")
+        f = open(self.filePath, 'r')
+
+        lines = []
+        for line in f:
+            lines.append(line.strip())
+
+        Headers_string = lines[0]
+        Headers = Headers_string.split(',,')
+        Headers = Headers[3:(len(Headers) - 1)]
+
+        for header in Headers:
+            self.pol.append(header[0])
+            hParts = header.split('/')
+            self.IZA.append(float(hParts[0][1:]))
+            self.VZA.append(float(hParts[1]))
+
+        for i in range(2, len(lines)):
+            line = lines[i].split(',')
+            line = line[0:len(line) - 1]
+            dataRow = []
+            for j in range(0, len(line)):
+                if j % 2 != 0:
+                    dataRow.append(float(line[j]))
+            self.data.append(dataRow)
+            self.wavelengths.append(line[0])
+
+    # def getData(self):
+
 
 
 if __name__ == '__main__':
