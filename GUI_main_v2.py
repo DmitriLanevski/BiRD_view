@@ -109,8 +109,9 @@ class DataContainer(object):
                 if j % 2 != 0:
                     dataRow.append(float(line[j]))
             self.data.append(dataRow)
-            self.wavelengths.append(line[0])
+            self.wavelengths.append(float(line[0]))
 
+        self.pols = np.array(self.pols)
         self.IZA = np.array(self.IZA)
         self.VZA = np.array(self.VZA)
         self.data = np.array(self.data)
@@ -127,8 +128,9 @@ class DataWizard(object):
         self.pols = np.array([1 for i in range(int(len(self.vza)/2))] + [2 for j in range(int(len(self.vza)/2))])
         self.data = np.empty((len(self.wavelengths),len(self.vza)))
         for i in range(len(self.wavelengths)):
+            a = np.random.random()
             for j in range(len(self.vza)):
-                self.data[i,j] = np.random.random()*cos(radians(self.vza[j]))
+                self.data[i,j] = a*cos(radians(self.vza[j]))
 
         self.pol = 1
         self.wavelength = 635
@@ -140,14 +142,17 @@ class DataWizard(object):
         self.maskWL = (self.pols == self.pol) & (self.iza == self.siza) & (self.phi == self.sphi) & (self.vza == self.svza)
 
         self.sdataVZA = self.data[(self.wavelengths == self.wavelength), self.maskVZA]
-        self.sdataVZA = self.data[:, self.maskWL]
+        self.sdataWL = self.data[:, self.maskWL]
 
     def updateDataSelection(self):
         self.maskVZA = (self.pols == self.pol) & (self.iza == self.siza) & (self.phi == self.sphi)
+        # print(self.maskVZA)
         self.maskWL = (self.pols == self.pol) & (self.iza == self.siza) & (self.phi == self.sphi) & (self.vza == self.svza)
+        # print(self.maskWL)
+        # print((self.wavelengths == self.wavelength))
 
         self.sdataVZA = self.data[(self.wavelengths == self.wavelength), self.maskVZA]
-        self.sdataVZA = self.data[:, self.maskWL]
+        self.sdataWL = self.data[:, self.maskWL]
 
     def updateData(self, fileName):
         dataContainer = self.dataDict[fileName]
@@ -180,18 +185,26 @@ class openFileButton(QPushButton):
         self.singleTab.polSelector.addAndConnectItems()
 
 class dataSelector(QComboBox):
-    def __init__(self, DataWizard):
+    def __init__(self, DataWizard, singleTab):
         super(QComboBox, self).__init__()
         self.DataWizard = DataWizard
+        self.singleTab = singleTab
 
     def addAndConnectItems(self):
+        self.clear()
         for name in self.DataWizard.dataDict:
             self.addItem(name)
+        # self.DataWizard.updateData(self.currentText())
         self.activated.connect(self.onActivated)
         self.update()
 
     def onActivated(self):
         self.DataWizard.updateData(self.currentText())
+        self.singleTab.wavelengthSelector.addAndConnectItems()
+        self.singleTab.izaSelector.addAndConnectItems()
+        self.singleTab.vzaSelector.addAndConnectItems()
+        self.singleTab.phiSelector.addAndConnectItems()
+        self.singleTab.polSelector.addAndConnectItems()
 
     def clearMenu(self):
         for index in range(self.count()):
@@ -199,21 +212,24 @@ class dataSelector(QComboBox):
             self.clear()
 
 class wavelengthSelector(QComboBox):
-    def __init__(self, DataWizard):
+    def __init__(self, DataWizard, mainPlotWidget):
         super(QComboBox, self).__init__()
         self.DataWizard = DataWizard
+        self.mainPlot = mainPlotWidget
 
     def addAndConnectItems(self):
-        self.clearMenu()
+        self.clear()
         for wavelength in self.DataWizard.wavelengths:
-            self.addItem(wavelength)
+            self.addItem(str(wavelength))
         self.DataWizard.wavelength = self.DataWizard.wavelengths[0]
+        self.DataWizard.updateDataSelection()
         self.activated.connect(self.onActivated)
         self.update()
 
     def onActivated(self):
-        self.DataWizard.wavelength = self.currentData()
+        self.DataWizard.wavelength = float(self.currentText())
         self.DataWizard.updateDataSelection()
+        self.mainPlot.updateData()
 
     def clearMenu(self):
         for index in range(self.count()):
@@ -221,12 +237,13 @@ class wavelengthSelector(QComboBox):
             self.clear()
 
 class izaSelector(QComboBox):
-    def __init__(self, DataWizard):
+    def __init__(self, DataWizard, mainPlotWidget):
         super(QComboBox, self).__init__()
         self.DataWizard = DataWizard
+        self.mainPlot = mainPlotWidget
 
     def addAndConnectItems(self):
-        self.clearMenu()
+        self.clear()
         for iza in np.unique(self.DataWizard.iza):
             self.addItem(str(iza.item()))
         self.DataWizard.siza = np.unique(self.DataWizard.iza)[0]
@@ -236,6 +253,7 @@ class izaSelector(QComboBox):
     def onActivated(self):
         self.DataWizard.siza = float(self.currentText())
         self.DataWizard.updateDataSelection()
+        self.mainPlot.updateData()
 
     def clearMenu(self):
         for index in range(self.count()):
@@ -243,21 +261,24 @@ class izaSelector(QComboBox):
             self.clear()
 
 class vzaSelector(QComboBox):
-    def __init__(self, DataWizard):
+    def __init__(self, DataWizard, mainPlotWidget):
         super(QComboBox, self).__init__()
         self.DataWizard = DataWizard
+        self.mainPlot = mainPlotWidget
 
     def addAndConnectItems(self):
-        self.clearMenu()
+        self.clear()
         for vza in np.unique(self.DataWizard.vza):
             self.addItem(str(vza))
         self.DataWizard.svza = np.unique(self.DataWizard.vza)[0]
+        self.DataWizard.updateDataSelection()
         self.activated.connect(self.onActivated)
         self.update()
 
     def onActivated(self):
         self.DataWizard.svza = float(self.currentText())
         self.DataWizard.updateDataSelection()
+        self.mainPlot.updateData()
 
     def clearMenu(self):
         for index in range(self.count()):
@@ -265,21 +286,24 @@ class vzaSelector(QComboBox):
             self.clear()
 
 class phiSelector(QComboBox):
-    def __init__(self, DataWizard):
+    def __init__(self, DataWizard, mainPlotWidget):
         super(QComboBox, self).__init__()
         self.DataWizard = DataWizard
+        self.mainPlot = mainPlotWidget
 
     def addAndConnectItems(self):
-        self.clearMenu()
+        self.clear()
         for phi in np.unique(self.DataWizard.phi):
             self.addItem(str(phi))
         self.DataWizard.sphi = np.unique(self.DataWizard.phi)[0]
+        self.DataWizard.updateDataSelection()
         self.activated.connect(self.onActivated)
         self.update()
 
     def onActivated(self):
         self.DataWizard.sphi = float(self.currentText())
         self.DataWizard.updateDataSelection()
+        self.mainPlot.updateData()
 
     def clearMenu(self):
         for index in range(self.count()):
@@ -287,12 +311,13 @@ class phiSelector(QComboBox):
             self.clear()
 
 class polSelector(QComboBox):
-    def __init__(self, DataWizard):
+    def __init__(self, DataWizard, mainPlotWidget):
         super(QComboBox, self).__init__()
         self.DataWizard = DataWizard
+        self.mainPlot = mainPlotWidget
 
     def addAndConnectItems(self):
-        self.clearMenu()
+        self.clear()
         upols = np.unique(self.DataWizard.pols)
         for pol in upols:
             if pol == 1:
@@ -302,17 +327,21 @@ class polSelector(QComboBox):
             else:
                 self.addItem('Non-polarized')
         self.DataWizard.pol = upols[0]
+        self.DataWizard.updateDataSelection()
         self.activated.connect(self.onActivated)
         self.update()
 
     def onActivated(self):
-        if self.currentText() == 'p':
+        if self.currentText() == "p":
+            # print(self.currentText())
             self.DataWizard.pol = 1
-        elif self.currentText() == 's':
+        elif self.currentText() == "s":
+            # print(self.currentText())
             self.DataWizard.pol = 2
         else:
             self.DataWizard.pol = 0
         self.DataWizard.updateDataSelection()
+        self.mainPlot.updateData()
 
     def clearMenu(self):
         for index in range(self.count()):
@@ -321,12 +350,27 @@ class polSelector(QComboBox):
 
 class mainPlotWidget(object):
         def __init__(self, tab, DataWizard):
+            plt.ioff()
             self.tab = tab
             self.DataWizard = DataWizard
 
             self.figure = plt.figure()
+
+            self.subplot1 = self.figure.add_subplot(211)
+            self.plot1 = self.subplot1.plot(self.DataWizard.vza[self.DataWizard.maskVZA],self.DataWizard.sdataVZA)
+
+            self.subplot2 = self.figure.add_subplot(212)
+            self.plot2 = self.subplot2.plot(self.DataWizard.wavelengths, self.DataWizard.sdataWL)
+
             self.canvas = FigureCanvas(self.figure)
             self.toolbar = NavigationToolbar(self.canvas, self.tab)
+
+        def updateData(self):
+            self.subplot1.clear()
+            self.subplot2.clear()
+            self.subplot1.plot(self.DataWizard.vza[self.DataWizard.maskVZA], self.DataWizard.sdataVZA)
+            self.subplot2.plot(self.DataWizard.wavelengths, self.DataWizard.sdataWL)
+            self.figure.canvas.draw()
 
 class singleTab(QtWidgets.QWidget):
     def __init__(self, tabs, DataWizard):
@@ -335,12 +379,12 @@ class singleTab(QtWidgets.QWidget):
         self.DataWizard = DataWizard
         self.mainPlot = mainPlotWidget(self, self.DataWizard)
 
-        self.dataSelector = dataSelector(DataWizard)
-        self.wavelengthSelector = wavelengthSelector(DataWizard)
-        self.izaSelector = izaSelector(DataWizard)
-        self.vzaSelector = vzaSelector(DataWizard)
-        self.phiSelector = phiSelector(DataWizard)
-        self.polSelector = polSelector(DataWizard)
+        self.dataSelector = dataSelector(DataWizard, self)
+        self.wavelengthSelector = wavelengthSelector(DataWizard, self.mainPlot)
+        self.izaSelector = izaSelector(DataWizard, self.mainPlot)
+        self.vzaSelector = vzaSelector(DataWizard, self.mainPlot)
+        self.phiSelector = phiSelector(DataWizard, self.mainPlot)
+        self.polSelector = polSelector(DataWizard, self.mainPlot)
 
         self.selectorLayout = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.selectorLayout.addWidget(QtWidgets.QLabel("Data file selector"))
