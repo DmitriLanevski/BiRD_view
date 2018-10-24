@@ -24,6 +24,8 @@ class Form(QtWidgets.QMainWindow):
         self.data2 = DataHolder()
         self.series_list_model_1 = QStandardItemModel()
         self.series_list_model_2 = QStandardItemModel()
+        self.series_list_model_3 = QStandardItemModel()
+        self.series_list_model_4 = QStandardItemModel()
 
         self.create_menu()
         self.create_main_frame()
@@ -46,7 +48,6 @@ class Form(QtWidgets.QMainWindow):
                 self.data2.load_from_file(filename)
                 self.fill_series_list(self.data2.series_names(), index)
 
-            #self.status_text.setText("Loaded " + filename)
             self.update_ui(index)
 
     def update_ui(self, index):
@@ -106,6 +107,52 @@ class Form(QtWidgets.QMainWindow):
             self.axes.legend()
         self.canvas.draw()
 
+    def on_show_comparison(self, index):
+        self.axes.clear()
+        self.axes.grid(True)
+
+        for row in range(self.series_list_model_4.rowCount()):
+            model_index = self.series_list_model_4.index(row, 0)
+            checked1 = self.series_list_model_4.data(model_index,
+                Qt.CheckStateRole) == QVariant(Qt.Checked)
+            if checked1:
+                operator = str(self.series_list_model_4.data(model_index))
+
+        for row in range(self.series_list_model_3.rowCount()):
+            model_index = self.series_list_model_3.index(row, 0)
+            checked = self.series_list_model_3.data(model_index,
+                Qt.CheckStateRole) == QVariant(Qt.Checked)
+            name = str(self.series_list_model_3.data(model_index))
+
+            if checked:
+                if self.legend_pp.isChecked():
+                    x1, y1, z1 = self.data1.get_series_data(name, 'p')
+                    x2, y2, z2 = self.data2.get_series_data(name, 'p')
+                elif self.legend_pp.isChecked() and self.legend_sp.isChecked():
+                    x1, y1, z1 = self.data1.get_series_data(name, 2)
+                    x2, y2, z2 = self.data2.get_series_data(name, 2)
+                else:
+                    x1, y1, z1 = self.data1.get_series_data(name, 's')
+                    x2, y2, z2 = self.data2.get_series_data(name, 's')
+
+                z = []
+                x = []
+                y = []
+                for i in range(0, len(x1)):
+                    if x1[i] == x2[i] and y1[i] == y2[i]:
+                        if operator == '-':
+                            z.append(z1[i] - z2[i])
+                        elif operator == '+':
+                            z.append(z1[i] + z2[i])
+                        else:
+                            z.append(z1[i] / z2[i])
+                        x.append(x1[i])
+                        y.append(y1[i])
+
+                self.axes.scatter(x, y, z)
+
+        self.canvas.draw()
+
     def on_about(self):
         msg = __doc__
         QtWidgets.QMessageBox.about(self, "About the demo", msg.strip())
@@ -120,6 +167,9 @@ class Form(QtWidgets.QMainWindow):
         else:
             self.series_list_model_2.clear()
 
+        self.series_list_model_3.clear()
+        self.series_list_model_4.clear()
+
         for name in names:
             new_name = str(name) +" nm"
             item = QStandardItem(new_name)
@@ -129,6 +179,34 @@ class Form(QtWidgets.QMainWindow):
                 self.series_list_model_1.appendRow(item)
             else:
                 self.series_list_model_2.appendRow(item)
+
+        for row in range(self.series_list_model_1.rowCount()):
+                model_index = self.series_list_model_1.index(row, 0)
+                name1 = str(self.series_list_model_1.data(model_index))
+                for row in range(self.series_list_model_1.rowCount()):
+                    model_index = self.series_list_model_1.index(row, 0)
+                    name2 = str(self.series_list_model_1.data(model_index))
+                    if name1 == name2:
+                        item = QStandardItem(name1)
+                        item.setCheckState(Qt.Unchecked)
+                        item.setCheckable(True)
+                        self.series_list_model_3.appendRow(item)
+
+        new_name = "+"
+        item = QStandardItem(new_name)
+        item.setCheckState(Qt.Unchecked)
+        item.setCheckable(True)
+        self.series_list_model_4.appendRow(item)
+        new_name = "-"
+        item = QStandardItem(new_name)
+        item.setCheckState(Qt.Unchecked)
+        item.setCheckable(True)
+        self.series_list_model_4.appendRow(item)
+        new_name = "/"
+        item = QStandardItem(new_name)
+        item.setCheckState(Qt.Unchecked)
+        item.setCheckable(True)
+        self.series_list_model_4.appendRow(item)
 
     def create_main_frame(self):
         self.main_frame = QtWidgets.QWidget()
@@ -207,6 +285,13 @@ class Form(QtWidgets.QMainWindow):
         self.load_button_2 = QtWidgets.QPushButton("&Load file")
         self.load_button_2.clicked.connect(lambda: self.load_file(self.index))
 
+        self.series_list_view3 = QtWidgets.QListView()
+        self.series_list_view3.setModel(self.series_list_model_3)
+        self.show_button_3 = QtWidgets.QPushButton("&Show Comparison")
+        self.show_button_3.clicked.connect(lambda: self.on_show_comparison(self.index))
+        self.series_list_view4 =QtWidgets.QListView()
+        self.series_list_view4.setModel(self.series_list_model_4)
+
         left_vbox = QtWidgets.QVBoxLayout()
         left_vbox.addWidget(self.canvas)
         left_vbox.addWidget(self.mpl_toolbar)
@@ -214,9 +299,11 @@ class Form(QtWidgets.QMainWindow):
         self.tabs = QtWidgets.QTabWidget()
         self.tab1 = QtWidgets.QWidget()
         self.tab2 = QtWidgets.QWidget()
+        self.tab3 = QtWidgets.QWidget()
 
         self.tabs.addTab(self.tab1, "Tab 1")
         self.tabs.addTab(self.tab2, "Tab 2")
+        self.tabs.addTab(self.tab3, "Tab 3")
 
         self.tab1.layout = QtWidgets.QVBoxLayout(self)
         self.tab1.layout.addWidget(log_label)
@@ -241,6 +328,12 @@ class Form(QtWidgets.QMainWindow):
         self.tab2.layout.addWidget(self.load_button_2)
         self.tab2.layout.addStretch(1)
         self.tab2.setLayout(self.tab2.layout)
+
+        self.tab3.layout = QtWidgets.QVBoxLayout(self)
+        self.tab3.layout.addWidget(self.series_list_view3)
+        self.tab3.layout.addWidget(self.series_list_view4)
+        self.tab3.layout.addWidget(self.show_button_3)
+        self.tab3.setLayout(self.tab3.layout)
 
         right_vbox = QtWidgets.QVBoxLayout()
         right_vbox.addWidget(self.tabs)
@@ -330,11 +423,12 @@ class DataHolder(object):
                 VZA.append(float(hParts[1]))
 
             for i in range(2, len(lines) - 1):
-                if len(lines[i]) < 1:
+                if len(lines[i]) < 5:
                     break
-                self.wavelengths.append(float(lines[i][0]))
+                if float(lines[i][0]) not in self.wavelengths:
+                    self.wavelengths.append(float(lines[i][0]))
                 k = 0
-                for j in range(6, len(lines[i])):
+                for j in range(6, len(lines[i])-1):
                     if j % 2 == 1:
                         data_row = (self.wavelengths[i - 2], float(IZA[k]), float(VZA[k]), float(lines[i][j]), pol[k])
                         self.data.append(data_row)
@@ -376,7 +470,6 @@ def main():
     form = Form()
     form.show()
     app.exec_()
-
 
 if __name__ == "__main__":
     main()
