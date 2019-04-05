@@ -11,10 +11,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions'] = True
 
-colors = {
-    'background': '#111111',
-    'text': '#000080'
-}
+colors = {'background': '#111111', 'text': '#000080'}
 
 uploaded_files = {}
 vis_lis = ['BRDF-visualization', 'Integrated', 'CIELAB visualization', 'Color difference calculation']
@@ -67,7 +64,6 @@ def server_layout():
         ], className="row "),
 
         html.Hr(),
-
         html.Div([
             html.Div([
                 html.H4('Visualization'),
@@ -78,13 +74,13 @@ def server_layout():
                     value=vis_lis[0],
                 ),
             ], className='six columns'),
+            html.Div([
+                html.H4('Variables'),
+                html.Div(id='variable', style={'display': 'none'}),
+                html.Div(id='radio', style={'display': 'none'}),
+                html.Div(id='menu'),
+            ], className='six columns')
         ], className="row "),
-
-        html.Hr(),
-        html.H4('Variables'),
-        html.Div(id='variable', style={'display': 'none'}),
-        html.Div(id='radio', style={'display': 'none'}),
-        html.Div(id='menu'),
 
         html.Hr(),
         dcc.Graph(id='graph')
@@ -98,9 +94,7 @@ def parse_content(content, name):
     dc = DataContainer(base64.b64decode(content_string))
     global uploaded_files
     uploaded_files[name] = dc
-    return html.Div(
-        html.Div('File uploaded'),
-    )
+    return html.Div(html.Div('File uploaded'))
 
 def brdf_graph(file, var, pol):
     global uploaded_files
