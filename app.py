@@ -6,17 +6,21 @@ import plotly.graph_objs as go
 import base64
 
 from DataContainer import DataContainer
+from UIupdater import UIupdater, brdfUpdater
 
+#App configurations
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions'] = True
-
 colors = {'background': '#111111', 'text': '#000080'}
 
+#Global variables
 uploaded_files = {}
 vis_lis = ['BRDF-visualization', 'Integrated', 'CIELAB visualization', 'Color difference calculation']
 var_lis = []
 
+#App layout
+#Page divided half (six columns)
 def server_layout():
     layout = html.Div([
         html.H1(children='BiRD view',
@@ -96,31 +100,6 @@ def parse_content(content, name):
     uploaded_files[name] = dc
     return html.Div(html.Div('File uploaded'))
 
-def brdf_graph(file, var, pol):
-    global uploaded_files
-    dc = uploaded_files[file]
-    traces = []
-    key_variation = dc.data['key_variation']
-    z = dc.data_by_key_variation(key_variation, pol)
-
-    traces.append(go.Scatter3d(
-            z=z,
-            x=dc.x_axis_by_variable('theta_c', pol, len(z)),
-            y=dc.y_axis_by_key_variation(key_variation, len(z)),
-            mode='markers',
-            opacity=0.7,
-            marker={
-                'size': 12,
-                'opacity': 0.7
-            }))
-    return {
-        'data': traces,
-        'layout': go.Layout(
-            hovermode='closest',
-            height=800,
-            title='BRDF visualization',
-    )}
-
 def empty_graph():
     traces = []
     traces.append(go.Scatter(
@@ -129,38 +108,7 @@ def empty_graph():
     ))
     return {'data': traces}
 
-def brdf_menu(file):
-    dc = uploaded_files[file]
-    var = list(dc.data.keys())
-    var.remove('values')
-    var.remove('key_variation')
-    key_variation = dc.data['key_variation']
-    var.remove(key_variation)
-    for i in var:
-        if len(dc.list_maker(i, 1)) < 2:
-                var.remove(i)
-
-    if 'polarization' in dc.data:
-        options = [
-            {'label': 'S', 'value': 's'},
-            {'label': 'P', 'value': 'p'},
-        ]
-    else:
-        options = []
-
-    return html.Div([
-        html.H6('BRDF visualization'),
-        html.P("Select variable for BRDF visualization."),
-        dcc.Dropdown(
-            id='variable',
-            options=[{'label': i, 'value': i} for i in var],
-        ),
-        html.P("Select polarization for BRDF visualization."),
-        dcc.RadioItems(
-            id='radio',
-            options=options,
-    )])
-
+#Update page
 @app.callback(
     Output('data-container', 'children'),
     [Input('upload-data', 'contents')],
@@ -195,7 +143,8 @@ def remove_file(clicks, value):
                Input('radio', 'value')])
 def update_graph(value, file, var, pol):
     if value == 'BRDF-visualization' and file is not None:
-        return brdf_graph(file, var, pol)
+        updater = brdfUpdater(file, uploaded_files)
+        return updater.brdf_graph(var, pol)
     elif value == 'Integrated' and file is not None:
         return empty_graph()
     elif value == 'CIELAB visualization' and file is not None:
@@ -210,7 +159,8 @@ def update_graph(value, file, var, pol):
                Input('file-dropdown', 'value')])
 def update_menu(value, file):
     if value == 'BRDF-visualization' and file is not None:
-        return brdf_menu(file)
+        updater = brdfUpdater(file, uploaded_files)
+        return updater.brdf_menu()
     elif value == 'Integrated' and file is not None:
         return 'Not yet implemented'
     elif value == 'CIELAB visualization' and file is not None:

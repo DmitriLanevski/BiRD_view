@@ -1,11 +1,13 @@
 import xmltodict
 import pandas as pd
 
+#Class for storing and selecting data
 class DataContainer:
     def __init__(self, data):
         self.uploadedData = data
         self.readData()
 
+    #Parses data
     def readData(self):
         d = xmltodict.parse(self.uploadedData)
         self.dic = d['catalog']
@@ -13,9 +15,9 @@ class DataContainer:
         self.data = self.dic['data']
         self.df = pd.read_csv(pd.compat.StringIO(self.data['values']), header=None)
 
-
-    def data_by_key_variation(self, name, pol):
-        var_list = self.list_maker(name, 0)
+    def data_by_key_variation(self, pol): #does not work for all variables yet
+        key_variation = self.data['key_variation']
+        var_list = self.list_maker(key_variation, 0)
         y = []
         j = 0
         for i in var_list:
@@ -32,8 +34,10 @@ class DataContainer:
                     y.append(v)
         return y
 
-    def y_axis_by_key_variation(self, name, length):
-        var_list = self.list_maker(name, 0)
+
+    def y_axis_by_key_variation(self, length):
+        key_variation = self.data['key_variation']
+        var_list = self.list_maker(key_variation, 0)
         num = length//len(var_list)
         y = []
         j = 0
