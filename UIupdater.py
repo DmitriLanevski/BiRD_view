@@ -2,10 +2,12 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
+#Different classes for updating graphs
 class UIupdater():
     def __init__(self, file, uploaded_files):
         self.dc = uploaded_files[file]
 
+#BRDF visualization
 class brdfUpdater(UIupdater):
     #def __init__(self, file):
     #    self.ui = UIupdater(file)
@@ -62,3 +64,18 @@ class brdfUpdater(UIupdater):
                 id='radio',
                 options=options,
         )])
+
+#CIELAB visualization
+class CIELABUpdater(UIupdater):
+    def CIELAB_graph(self):
+        pass
+
+#Color difference visualization
+class ColorDifCalUpdater(UIupdater):
+    def ColDifCal_graph(self):
+        pass
+
+#Integrated visualization
+class IntegratedUpdater(UIupdater):
+    def Integrated_graph(self):
+        pass

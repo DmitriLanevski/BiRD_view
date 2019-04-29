@@ -38,7 +38,6 @@ def server_layout():
         html.Div([
             html.Div([
                 html.H4('Add and remove data'),
-                #html.Br([]),
                 html.P("Upload new file by clicking Upload file button.\
                        Remove file by selecting it from the list and clicking Remove file button."),
 
@@ -58,7 +57,6 @@ def server_layout():
 
             html.Div([
                 html.H4('Uploaded files'),
-                #html.Br([]),
                 dcc.Dropdown(
                     id='file-dropdown',
                     options=[{'label': i, 'value': i} for i in uploaded_files],
@@ -93,6 +91,7 @@ def server_layout():
 
 app.layout = server_layout()
 
+#Parses uploaded file
 def parse_content(content, name):
     content_type, content_string = content.split(',')
     dc = DataContainer(base64.b64decode(content_string))
@@ -100,6 +99,7 @@ def parse_content(content, name):
     uploaded_files[name] = dc
     return html.Div(html.Div('File uploaded'))
 
+#Empty graph for starting app
 def empty_graph():
     traces = []
     traces.append(go.Scatter(
@@ -108,7 +108,7 @@ def empty_graph():
     ))
     return {'data': traces}
 
-#Update page
+#Updates page according to events
 @app.callback(
     Output('data-container', 'children'),
     [Input('upload-data', 'contents')],

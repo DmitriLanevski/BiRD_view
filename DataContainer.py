@@ -15,6 +15,7 @@ class DataContainer:
         self.data = self.dic['data']
         self.df = pd.read_csv(pd.compat.StringIO(self.data['values']), header=None)
 
+    #Selects data according to key variation
     def data_by_key_variation(self, pol): #does not work for all variables yet
         key_variation = self.data['key_variation']
         var_list = self.list_maker(key_variation, 0)
@@ -33,7 +34,6 @@ class DataContainer:
                 for v in values:
                     y.append(v)
         return y
-
 
     def y_axis_by_key_variation(self, length):
         key_variation = self.data['key_variation']
@@ -66,6 +66,7 @@ class DataContainer:
         w = y * num
         return w
 
+    #Reads data from DataContainer into list
     def list_maker(self, value, u):
         string = self.data[value]
         list1 = string.split(',')
